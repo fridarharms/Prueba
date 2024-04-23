@@ -1,0 +1,22 @@
+/* Estilos adicionales para seleccioanr maquina */
+.legend {
+    /* Mantenemos los estilos existentes */
+    padding: 5px 10px;
+    border-radius: 5px;
+    display: inline-block;
+    /* Nuevos estilos */
+    font-size: 16px; /* Tamaño de fuente */
+    color: #333; /* Color de texto */
+  }
+  
+  /* Estilos para el icono de flecha */
+  .legend .dropdown-toggle::after {
+    margin-left: 5px;
+    color: #666; /* Color del icono */
+  }
+  .btn-group {
+    /* Ajusta el tamaño del botón para que coincida con el tamaño de legend */
+    width: 127.34px; /* Ajusta el ancho */
+    height: 40.58px; /* Ajusta la altura */
+  }
+  
