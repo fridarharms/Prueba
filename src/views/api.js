@@ -62,7 +62,7 @@ router.get("/sum-same-color/:tableName/:turno?/:fecha?", (req, res) => {
   const { turno, tableName, fecha } = req.params;
   const { whereClause, queryParams } = buildQueryParams(turno, fecha);
 
-  const query = `SELECT color, SUM(diferencia) AS suma_diferencia FROM ${tableName} ${whereClause} GROUP BY color`;
+  const query = `SELECT color, SUM(diferencia)/3600 AS suma_diferencia FROM ${tableName} ${whereClause} GROUP BY color`;
   //console.log(queryParams);
   
   db.query(query, queryParams, (error, results) => {

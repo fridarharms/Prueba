@@ -50,7 +50,6 @@ function Sidebar(props) {
     <div className="sidebar" data-color={props.backgroundColor}>
       <div className="logo">
         <a
-          href="https://www.creative-tim.com?ref=nudr-sidebar"
           className="simple-text logo-mini"
           target="_blank"
         >
@@ -59,7 +58,6 @@ function Sidebar(props) {
           </div>
         </a>
         <a
-          href="https://www.creative-tim.com?ref=nudr-sidebar"
           className="simple-text logo-normal"
           target="_blank"
         >
@@ -72,11 +70,6 @@ function Sidebar(props) {
             if (prop.redirect) return null;
             return (
               <li
-                className={
-                  activeRoute(prop.layout + prop.path) +
-                  (prop.pro ? " active active-pro" : "")
-                }
-                key={key}
               >
                 <NavLink to={prop.layout + prop.path} className="nav-link">
                   <i className={"now-ui-icons " + prop.icon} />

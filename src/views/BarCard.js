@@ -92,8 +92,11 @@ function BarCard() {
           <div className="card flex justify-content-center">
           <MultiSelect
               value={selectedTable}
-              options={tables.map((table) => ({ value: table.Tabla, label: table.Tabla }))}
-              onChange={(e) => handleTablaSelect(e.value)}
+              options={tables.map((table, index) => ({
+                value: table.Tabla,
+                label: table.Tabla,
+                key: index,
+              }))}              onChange={(e) => handleTablaSelect(e.value)}
               optionLabel="Tabla"
               placeholder="Seleccionar tabla"
               className="w-full md:w-20rem"
