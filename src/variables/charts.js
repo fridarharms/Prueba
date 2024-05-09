@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-const fetchChartDataFromAPI = async (tablasBar, turno, fecha) => {
+const fetchChartDataFromAPI = async (tablasBar, turno, fecha_inicio,fecha_fin) => {
   const tables = Array.isArray(tablasBar) ? tablasBar : [tablasBar];
   console.log("Maquinas " + tables);
   const maquinas = tables; // Usamos el mismo arreglo para las etiquetas de las máquinas
@@ -10,21 +10,25 @@ const fetchChartDataFromAPI = async (tablasBar, turno, fecha) => {
   const errorValues = [];
   const desconectadoValues = [];
   const amarilloValues = [];
+  const desconocidoValues=[]
 
   // Realizamos las solicitudes de manera concurrente para obtener los datos de las tablas
   const responses = await Promise.all(
     tables.map(async (tablasBar) => {
-      let url = `http://localhost:3001/api/sum-same-color/${tablasBar}`;
+      let url = `http://172.16.8.172:3001/api/sum-same-color/${tablasBar}`;
       
       if (turno) {
         url += `/${turno}`;
       }
-      if (fecha) {
-        url += `/${fecha}`;
+      if (fecha_inicio) {
+        url += `/${fecha_inicio}`;
       }
-      
+      if (fecha_fin) {
+        url += `/${fecha_fin}`;
+      }
+
+      console.log(url)
       const response = await fetch(url);
-      console.log(response);
       return response.json(); // Llamamos a la función json() para obtener los datos JSON reales
     })
   );
@@ -41,6 +45,7 @@ const fetchChartDataFromAPI = async (tablasBar, turno, fecha) => {
     errorValues.push(datos.Error ? datos.Error : 0);
     desconectadoValues.push(datos.Desconectado ? datos.Desconectado : 0);
     amarilloValues.push(datos.Amarillo ? datos.Amarillo : 0);
+    desconocidoValues.push(datos.Desconocido ? datos.Desconocido : 0);
   });
 
   // Creamos el arreglo de datasets con los valores obtenidos
@@ -80,8 +85,14 @@ const fetchChartDataFromAPI = async (tablasBar, turno, fecha) => {
       borderWidth: 1,
       barPercentage: 0.2,
     },
+    {
+      label: "Desconocido",
+      data: desconocidoValues,
+      backgroundColor: "#4acccd",
+      borderWidth: 1,
+      barPercentage: 0.2,
+    },
   ];
-
   //console.log(maquinas)
   //console.log(datasets)
   return { labels: maquinas, datasets };
@@ -94,8 +105,9 @@ function transformData(data) {
     Error: 0,
     Desconectado: 0,
     Amarillo: 0,
+    Desconocido:0,
   };
-console.log(data)
+//console.log(data)
   if (data.resultado) {
     data.resultado.forEach((row) => {
       const { color, suma_diferencia } = row;
@@ -109,43 +121,7 @@ console.log(data)
 
   return dataByColor;
 }
-function getColorBorderColor(color) {
-  switch (color) {
-    case "Produccion":
-      return "#8fe38a";
-    case "Error":
-      return "#fc7e7e";
-    case "Amarillo":
-      return "#face87";
-    case "Detenido":
-      return "#7dc6fa";
-    case "Desconectado":
-      return "#b0aeae";
-    case "Desconocido":
-      return "#60bebf";
-    default:
-      return "#000000"; // Color de borde predeterminado
-  }
-}
 
-function getColorBackgroundColor(color) {
-  switch (color) {
-    case "Produccion":
-      return "#18ce0f";
-    case "Error":
-      return "#FF3636";
-    case "Amarillo":
-      return "#FFB236";
-    case "Detenido":
-      return "#2CA8FF";
-    case "Desconectado":
-      return "#e3e3e3";
-    case "Desconocido":
-      return "#4acccd";
-    default:
-      return "#ffffff"; // Color de fondo predeterminado
-  }
-}
 const dashboardNASDAQChart = {
   options: {
     maintainAspectRatio: true, // Restauramos la opción de mantener la proporción para que Chart.js ajuste el tamaño automáticamente
@@ -202,7 +178,7 @@ const dashboardNASDAQChart = {
 };
 
 const fetchTableData = () => {
-  return fetch("http://localhost:3001/api/last-color")
+  return fetch("http://172.16.8.172:3001/api/last-color")
     .then((response) => response.json())
     .catch((error) => {
       console.error("Error fetching table data:", error);
@@ -238,17 +214,17 @@ function handleTurnoSelect(turno, setSelectedTurno, fetchChartDataAndUpdate, sel
 }
 
 
-const handleFechaSelect = (
-  fecha,
-  setSelectedFecha,
-  fetchChartDataAndUpdate,
-  selectedTable,
-  selectedTurno
-) => {
-  const formattedFecha = format (fecha, "yyyy-MM-dd");
-  const fechaParam = fecha ? formattedFecha : ""; // Si fecha es undefined, asigna una cadena vacía
-  setSelectedFecha(fecha);
-  fetchChartDataAndUpdate(selectedTable, selectedTurno, fechaParam);
+const handleFechaSelect = (fecha, setSelectedFecha, fetchChartDataAndUpdate, selectedTable, selectedTurno) => {
+  if (fecha!== null) {
+    // Si la fecha no es null, conviértela a formato yyyy-MM-dd y luego actualiza el estado
+    setSelectedFecha(fecha.format("YYYY-MM-DD"));
+
+    // Llama a la función para obtener y actualizar los datos del gráfico
+    fetchChartDataAndUpdate(selectedTable, selectedTurno, fecha);
+  } else {
+    // Si la fecha es null, no intentes convertirla y simplemente actualiza el estado
+    setSelectedFecha(null);
+  }
 };
 
 const toggleDropdownTurno = (setDropdownTurnoOpen) => {

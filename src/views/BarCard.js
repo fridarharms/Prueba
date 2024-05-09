@@ -1,9 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useReducer } from "react";
 import { Bar } from "react-chartjs-2";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import { DatePicker } from 'antd'; // Importa el nuevo componente de Ant Design
 import { MultiSelect } from 'primereact/multiselect';
-import "primereact/resources/themes/lara-light-cyan/theme.css";
 import {
   Card,
   CardHeader,
@@ -15,51 +13,74 @@ import {
   DropdownItem,
   ButtonDropdown,
 } from "reactstrap";
-import {  fetchTableData, handleTurnoSelect, handleFechaSelect, toggleDropdownTurno } from "variables/charts.js";
+import { fetchTableData, handleTurnoSelect, toggleDropdownTurno } from "variables/charts.js";
 import { dashboardNASDAQChart } from "variables/charts.js";
-import {fetchChartDataFromAPI} from "variables/charts.js"
+import { fetchChartDataFromAPI } from "variables/charts.js";
 import "./dashboard.css";
 
-function BarCard() {
-    const [barData, setBarData] = useState(null); // Nuevo estado para el gráfico de barras
-    const [tables, setTables] = useState([]);
-    const [selectedTable, setSelectedTable] = useState(null);
-    const [selectedTurno, setSelectedTurno] = useState(null);
-    const [dropdownTurnoOpen, setDropdownTurnoOpen] = useState(false);
-    const [selectedFecha, setSelectedFecha] = useState(null);
+const initialState = {
+  startDate: null,
+  endDate: null,
+  focusedInput: null,
+};
 
-    useEffect(() => {
-      fetchTableData()
-      
-        .then((data) => {
-          
-          setTables(data);
-          //console.log("fetchTableData : "+data)
-        })
-        .catch((error) => {
-          console.error("Error fetching table data:", error);
-        });
-    }, []);
-
-    async function fetchAndSetBarData(tabla, turno, fecha) {
-      const result = await fetchChartDataFromAPI(tabla, turno, fecha);
-      setBarData(result);
-    }
-  
-    function handleTablaSelect(tabla) {
-      setSelectedTable(tabla);
-      fetchAndSetBarData(tabla, selectedTurno, selectedFecha);
-    }
-  
-  async function test(tablasBar) {
-    console.log("Tablas seleccionadas test: ",tablasBar)
-    const result = await fetchChartDataFromAPI(tablasBar, selectedTurno, selectedFecha)
-    setBarData(result);
-    console.log(result)
+function reducer(state, action) {
+  switch (action.type) {
+    case 'focusChange':
+      return { ...state, focusedInput: action.payload };
+    case 'dateChange':
+      return action.payload;
+    default:
+      throw new Error();
   }
-  const fetchChartDataAndUpdate = (tableName, turno, fecha) => {
-    //console.log("fetchchartdatafromapi "+tableName)
-    fetchChartDataFromAPI(tableName, turno, fecha)
+}
+
+function BarCard() {
+  const [barData, setBarData] = useState(null);
+  const [tables, setTables] = useState([]);
+  const [selectedTable, setSelectedTable] = useState(null);
+  const [selectedTurno, setSelectedTurno] = useState(null);
+  const [dropdownTurnoOpen, setDropdownTurnoOpen] = useState(false);
+  const [state, dispatch] = useReducer(reducer, initialState); // Usa el nuevo estado y el reducer
+
+  useEffect(() => {
+    fetchTableData()
+      .then((data) => {
+        setTables(data);
+      })
+      .catch((error) => {
+        console.error("Error fetching table data:", error);
+      });
+  }, []);
+
+  async function fetchAndSetBarData(tabla, turno, fechaInicio, fechaFin) {
+    const result = await fetchChartDataFromAPI(tabla, turno, fechaInicio, fechaFin);
+    setBarData(result);
+    console.log(result);
+  }
+
+  function handleTablaSelect(tabla) {
+    setSelectedTable(tabla);
+    if (state.startDate && state.endDate) {
+      const startDateString = state.startDate.toISOString().split('T')[0];
+      const endDateString = state.endDate.toISOString().split('T')[0];
+      fetchAndSetBarData(tabla, selectedTurno, startDateString, endDateString);
+    }
+  }
+
+  const handleFechaSelect = (dates, dateStrings) => {
+    if (dates && dates.length === 2) { // Verifica si dates no es null y tiene una longitud de 2
+      dispatch({ type: 'dateChange', payload: { startDate: dates[0], endDate: dates[1] } });
+      if (selectedTable && selectedTurno && dates[0] && dates[1]) {
+        const startDateString = dates[0].toISOString().split('T')[0];
+        const endDateString = dates[1].toISOString().split('T')[0];
+        fetchAndSetBarData(selectedTable, selectedTurno, startDateString, endDateString);
+      }
+    }
+  };
+
+  const fetchChartDataAndUpdate = (tableName, turno, fechaInicio, fechaFin) => {
+    fetchChartDataFromAPI(tableName, turno, fechaInicio, fechaFin)
       .then((data) => {
         setBarData(data);
       })
@@ -76,7 +97,7 @@ function BarCard() {
           <CardTitle tag="h5">Estatús Máquinas</CardTitle>
           <p className="card-category">Comparación de Máquinas</p>
         </CardHeader>
-        <CardBody>
+        <CardBody style={{ height: "266px" }}>
         {barData && barData.labels && barData.datasets ? (
           <Bar
             data={{labels: barData.labels, datasets: barData.datasets}}
@@ -88,24 +109,23 @@ function BarCard() {
           <div>No hay datos disponibles</div>
         )}
         </CardBody>
-        <CardFooter>
-          <div className="card flex justify-content-center">
-          <MultiSelect
+        <CardFooter className="d-flex justify-content-between align-items-center">
+          <div>
+            <MultiSelect
               value={selectedTable}
               options={tables.map((table, index) => ({
                 value: table.Tabla,
-                label: table.Tabla,
                 key: index,
-              }))}              onChange={(e) => handleTablaSelect(e.value)}
-              optionLabel="Tabla"
+              }))}
+              onChange={(e) => handleTablaSelect(e.value)}
+              optionLabel="value"
               placeholder="Seleccionar tabla"
               className="w-full md:w-20rem"
               maxSelectedLabels={3}
-
-          />
+            />
           </div>
-          <div className="legend">
-          <ButtonDropdown
+          <div className="text-center flex-grow-1">
+            <ButtonDropdown
               isOpen={dropdownTurnoOpen}
               toggle={() => toggleDropdownTurno(setDropdownTurnoOpen)}
             >
@@ -113,33 +133,22 @@ function BarCard() {
                 {selectedTurno || "Seleccionar turno"}
               </DropdownToggle>
               <DropdownMenu>
-                <DropdownItem onClick={() => handleTurnoSelect("matutino", setSelectedTurno, fetchChartDataAndUpdate, selectedTable, selectedFecha)}>
+                <DropdownItem onClick={() => handleTurnoSelect("matutino", setSelectedTurno, fetchChartDataAndUpdate, selectedTable, state)}>
                   Matutino
                 </DropdownItem>
-                <DropdownItem onClick={() => handleTurnoSelect("vespertino", setSelectedTurno, fetchChartDataAndUpdate, selectedTable, selectedFecha)}>
+                <DropdownItem onClick={() => handleTurnoSelect("vespertino", setSelectedTurno, fetchChartDataAndUpdate, selectedTable, state)}>
                   Vespertino
                 </DropdownItem>
-                <DropdownItem onClick={() => handleTurnoSelect("nocturno", setSelectedTurno, fetchChartDataAndUpdate, selectedTable, selectedFecha)}>
+                <DropdownItem onClick={() => handleTurnoSelect("nocturno", setSelectedTurno, fetchChartDataAndUpdate, selectedTable, state)}>
                   Nocturno
                 </DropdownItem>
               </DropdownMenu>
             </ButtonDropdown>
-
           </div>
-          <div>
-          <DatePicker
-                  selected={selectedFecha}
-                  onChange={(date) =>
-                    handleFechaSelect(
-                      date.toISOString().split('T')[0], // Formato yyyy-MM-dd
-                      setSelectedFecha,
-                      fetchChartDataAndUpdate,
-                      selectedTable,
-                      selectedTurno
-                    )
-                  }
-                  dateFormat="yyyy-MM-dd"
-                />
+          <div className="ml-auto date-range-input-container">
+            <DatePicker.RangePicker
+              onChange={handleFechaSelect} // Usa la nueva función para manejar el cambio de fechas
+            />
           </div>
           <hr />
         </CardFooter>

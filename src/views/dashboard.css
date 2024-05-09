@@ -1,22 +1,43 @@
 /* Estilos adicionales para seleccioanr maquina */
+.date-range-input-menu {
+  position: relative;
+  z-index: 1000; /* Ajusta este valor según sea necesario para evitar superposiciones */
+}
+
 .legend {
-    /* Mantenemos los estilos existentes */
-    padding: 5px 10px;
-    border-radius: 5px;
-    display: inline-block;
-    /* Nuevos estilos */
-    font-size: 16px; /* Tamaño de fuente */
-    color: #333; /* Color de texto */
-  }
-  
-  /* Estilos para el icono de flecha */
-  .legend .dropdown-toggle::after {
-    margin-left: 5px;
-    color: #666; /* Color del icono */
-  }
-  .btn-group {
-    /* Ajusta el tamaño del botón para que coincida con el tamaño de legend */
-    width: 127.34px; /* Ajusta el ancho */
-    height: 40.58px; /* Ajusta la altura */
-  }
-  
+  /* Mantenemos los estilos existentes */
+  padding: 5px 10px;
+  border-radius: 5px;
+  display: inline-block;
+  /* Nuevos estilos */
+  font-size: 16px; /* Tamaño de fuente */
+  color: #333; /* Color de texto */
+}
+
+/* Estilos para el icono de flecha */
+.legend .dropdown-toggle::after {
+  margin-left: 5px;
+  color: #666; /* Color del icono */
+}
+.btn-group {
+  /* Ajusta el tamaño del botón para que coincida con el tamaño de legend */
+  width: 127.34px; /* Ajusta el ancho */
+  height: 40.58px; /* Ajusta la altura */
+}
+.custom-button-dropdown {
+  max-width: 150px; /* Ajusta este valor según sea necesario */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.date-range-input-container {
+  position: relative; /* Establece la posición relativa */
+}
+
+.date-range-input-menu {
+  position: absolute; /* Posiciona el DateRangeInput de manera absoluta */
+  z-index: 999; /* Ajusta el z-index para que esté por encima de otros elementos */
+  top: 0; /* Ajusta la posición superior según sea necesario */
+  left: 0; /* Ajusta la posición izquierda según sea necesario */
+}
+

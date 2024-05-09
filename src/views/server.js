@@ -5,7 +5,7 @@ const cors = require("cors");
 const app = express();
 
 app.use(cors({
-    origin: "http://localhost:3000"
+    origin: "http://172.16.8.172:3000"
 }));
 
 app.set("port", 3001);

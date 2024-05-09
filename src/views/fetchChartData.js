@@ -1,14 +1,15 @@
 import { format } from "date-fns";
 
 const fetchChartData = (tableName, turno, fecha) => {
-  let url = `http://localhost:3001/api/sum-same-color/${tableName}`;
+  let url = `http://172.16.8.172:3001/api/sum-color/${tableName}`;
   if (turno) {
     url += `/${turno}`;
   }
   if (fecha) {
     url += `/${fecha}`;
+    console.log(fecha)
   }
-
+  console.log(url)
   return fetch(url)
     .then((response) => response.json())
     .then((data) => {
@@ -61,7 +62,7 @@ const fetchChartData = (tableName, turno, fecha) => {
 };
 
 const fetchTableData = () => {
-  return fetch("http://localhost:3001/api/last-color")
+  return fetch("http://172.16.8.172:3001/api/last-color")
     .then((response) => response.json())
     .catch((error) => {
       console.error("Error fetching table data:", error);
@@ -80,15 +81,18 @@ const handleTurnoSelect = (turno, setSelectedTurno, fetchChartDataAndUpdate, sel
 };
 
 const handleFechaSelect = (fecha, setSelectedFecha, fetchChartDataAndUpdate, selectedTable, selectedTurno) => {
-  // Formatea la fecha en el formato deseado
-  const formattedFecha = format(fecha, "yyyy-MM-dd");
-  
-  // Actualiza el estado de la fecha seleccionada
-  setSelectedFecha(fecha);
-  
-  // Llama a la función para obtener y actualizar los datos del gráfico
-  fetchChartDataAndUpdate(selectedTable, selectedTurno, formattedFecha);
+  if (fecha!== null) {
+    // Si la fecha no es null, conviértela a formato yyyy-MM-dd y luego actualiza el estado
+    setSelectedFecha(fecha);
+
+    // Llama a la función para obtener y actualizar los datos del gráfico
+    fetchChartDataAndUpdate(selectedTable, selectedTurno, fecha);
+  } else {
+    // Si la fecha es null, no intentes convertirla y simplemente actualiza el estado
+    setSelectedFecha(null);
+  }
 };
+
 
 const toggleDropdownTurno = (setDropdownTurnoOpen) => {
   setDropdownTurnoOpen((prevState) => !prevState);

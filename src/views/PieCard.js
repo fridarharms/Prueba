@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Pie } from "react-chartjs-2";
-import DatePicker from "react-datepicker";
+import { DatePicker } from "antd";
 import "react-datepicker/dist/react-datepicker.css";
 import {
   Card,
@@ -28,13 +28,12 @@ function PieCard(){
     const [dropdownTurnoOpen, setDropdownTurnoOpen] = useState(false);
     const [selectedFecha, setSelectedFecha] = useState(null);
     const [showAllTables, setShowAllTables] = useState(false);
-    const [allTablesDropdownOpen, setAllTablesDropdownOpen] = useState(false);
     const toggleDropdown = () => setDropdownOpen((prevState) => !prevState);
-    const toggleAllTablesDropdown = () => setAllTablesDropdownOpen((prevState) => !prevState);
     useEffect(() => {
       fetchTableData()
         .then((data) => {
           setTables(data);
+          
         })
         .catch((error) => {
           console.error("Error fetching table data:", error);
@@ -56,16 +55,21 @@ function PieCard(){
       }, [selectedTable]); // Ejecutar este efecto cuando selectedTable cambie
 
       const fetchChartDataAndUpdate = (tableName, turno, fecha) => {
-        console.log(tableName)
-        fetchChartData(tableName, turno, fecha)
-          .then((data) => {
-            setChartData(data);
-          })
-          .catch((error) => {
-            console.error("Error fetching chart data:", error);
-            setChartData(null);
-          });
+        console.log(tableName);
+        return new Promise((resolve, reject) => {
+          fetchChartData(tableName, turno, fecha)
+            .then((data) => {
+              setChartData(data);
+              resolve(data); // Resuelve la promesa con los datos
+            })
+            .catch((error) => {
+              console.error("Error fetching chart data:", error);
+              setChartData(null);
+              reject(error); // Rechaza la promesa con el error
+            });
+        });
       };
+      
     
       // Función para manejar el clic en el botón de mostrar todas las tablas
       const handleShowAllTablesClick = () => {
@@ -91,7 +95,7 @@ function PieCard(){
                   <div>No hay datos disponibles</div>
                 )}
               </CardBody>
-              <CardFooter>
+              <CardFooter className="d-flex justify-content-between align-items-center">
                 <div className="legend" key={1}>
                   <Dropdown isOpen={dropdownOpen} toggle={toggleDropdown}>
                     <DropdownToggle caret>
@@ -141,14 +145,13 @@ function PieCard(){
                   selected={selectedFecha}
                   onChange={(date) =>
                     handleFechaSelect(
-                      date.toISOString().split('T')[0], // Formato yyyy-MM-dd
+                      date ? date.toISOString().split('T')[0]:null, // Formato yyyy-MM-dd
                       setSelectedFecha,
                       fetchChartDataAndUpdate,
                       selectedTable,
                       selectedTurno
                     )
                   }
-                  dateFormat="yyyy-MM-dd"
                 />
                 </div>
                 <hr />

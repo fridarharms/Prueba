@@ -4,23 +4,53 @@ const db = require("./db");
 const cors = require("cors");
 router.use(cors());
 // Función para construir la cláusula WHERE y los parámetros de consulta
-const buildQueryParams = (turno, fecha) => {
+const buildQueryParams = (turno, fechaInicio, fechaFin) => {
   let whereClause = "";
   let queryParams = [];
 
-  if (turno && fecha) {
-    whereClause = "WHERE DATE(fecha_inicio) = ? AND turno = ?";
-    queryParams = [fecha, turno];
+  if (turno && fechaInicio && fechaFin) {
+    whereClause = "WHERE DATE(fecha_inicio) >= ? AND DATE(fecha_fin) <= ? AND turno = ?";
+    queryParams = [fechaInicio, fechaFin, turno];
+  } else if (turno && fechaInicio) {
+    whereClause = "WHERE DATE(fecha_inicio) >= ? AND turno = ?";
+    queryParams = [fechaInicio, turno];
+  } else if (turno && fechaFin) {
+    whereClause = "WHERE DATE(fecha_fin) <= ? AND turno = ?";
+    queryParams = [fechaFin, turno];
   } else if (turno) {
     whereClause = "WHERE turno = ?";
     queryParams = [turno];
-  } else if (fecha) {
-    whereClause = "WHERE DATE(fecha_inicio) = ?";
-    queryParams = [fecha];
+  } else if (fechaInicio && fechaFin) {
+    whereClause = "WHERE DATE(fecha_inicio) >= ? AND DATE(fecha_fin) <= ?";
+    queryParams = [fechaInicio, fechaFin];
+  } else if (fechaInicio) {
+    whereClause = "WHERE DATE(fecha_inicio) >= ?";
+    queryParams = [fechaInicio];
+  } else if (fechaFin) {
+    whereClause = "WHERE DATE(fecha_fin) <= ?";
+    queryParams = [fechaFin];
   }
 
   return { whereClause, queryParams };
 };
+const buildQueryParams2 = (turno, fecha) => {
+  let whereClause = "";
+  let queryParams = [];
+
+  if (turno && fecha) {
+    whereClause = "WHERE DATE(fecha_inicio) >= ? AND DATE(fecha_fin) <= ? AND turno = ?";
+    queryParams = [fecha, fecha, turno];
+  } else if (turno) {
+    whereClause = "WHERE turno = ?";
+    queryParams = [turno];
+  } else if (fecha) {
+    whereClause = "WHERE DATE(fecha_inicio) >= ? AND DATE(fecha_fin) <= ?";
+    queryParams = [fecha, fecha];
+  }
+
+  return { whereClause, queryParams };
+};
+
 
 // Ruta para obtener el último color de cada tabla
 router.get("/last-color", (req, res) => {
@@ -57,13 +87,11 @@ router.get("/last-color", (req, res) => {
 });
 
 // Ruta para sumar la columna "diferencia" de tablas con el mismo color, considerando la fecha y el turno
-router.get("/sum-same-color/:tableName/:turno?/:fecha?", (req, res) => {
-  //console.log(req.params.tableName);
-  const { turno, tableName, fecha } = req.params;
-  const { whereClause, queryParams } = buildQueryParams(turno, fecha);
+router.get("/sum-same-color/:tableName/:turno?/:fechaInicio?/:fechaFin?", (req, res) => {
+  const { turno, tableName, fechaInicio, fechaFin } = req.params;
+  const { whereClause, queryParams } = buildQueryParams(turno, fechaInicio, fechaFin);
 
   const query = `SELECT color, SUM(diferencia)/3600 AS suma_diferencia FROM ${tableName} ${whereClause} GROUP BY color`;
-  //console.log(queryParams);
   
   db.query(query, queryParams, (error, results) => {
     if (error) {
@@ -80,13 +108,21 @@ router.get("/sum-same-color/:tableName/:turno?/:fecha?", (req, res) => {
     res.json({table, resultado});
   });
 });
-//Ruta para obtener las tablas de mi base de datos 
-router.get("/tables",(req,res)=>{
-  const query = "SELECT color, SUM(diferencia)/3600 AS suma_diferencia FROM milltap700 GROUP BY color";
+//Ruta para obtener los datos de una tabla específica con los campos solicitados, considerando turno y fecha
+router.get("/tables/:tableName/:turno?/:fecha?", (req, res) => {
+  const { tableName, turno, fecha} = req.params;
 
-  db.query(query, (error, results) => {
+  // Construir la cláusula WHERE y los parámetros de consulta
+  const { whereClause, queryParams } = buildQueryParams2(turno, fecha);
+
+  // Construir la consulta SQL para obtener los datos de la tabla seleccionada con los filtros y la hora de fecha_inicio y fecha_fin
+  const query = `
+    SELECT ID_maquina, color, diferencia,fecha_fin,fecha_inicio FROM ${tableName} ${whereClause}`;
+
+  // Ejecutar la consulta en la base de datos
+  db.query(query, queryParams, (error, results) => {
     if (error) {
-      console.error("Error al obtener los datos:", error);
+      console.error("Error al obtener los datos de la tabla:", error);
       return res.status(500).json({ error: "Error interno del servidor" });
     }
 
@@ -94,16 +130,34 @@ router.get("/tables",(req,res)=>{
       return res.status(404).json({ error: "No se encontraron datos" });
     }
 
-    // Variables separadas
-    const table = "milltap500";
-    const colors = results.map(item => item.color);
-    const sumaDiferencia = results.map(item => item.suma_diferencia);
-    
-    results.forEach((e) => console.log(e));
-
-    res.json({ table, results });
+    // Devolver los resultados como respuesta JSON
+    res.json(results);
+    console.log(results);
   });
 });
+
+router.get("/sum-color/:tableName/:turno?/:fecha", (req, res) => {
+  const { turno, tableName, fecha} = req.params;
+  const { whereClause, queryParams } = buildQueryParams2(turno, fecha);
+
+  const query = `SELECT color, SUM(diferencia)/3600 AS suma_diferencia FROM ${tableName} ${whereClause} GROUP BY color`;
+  
+  db.query(query, queryParams, (error, results) => {
+    if (error) {
+      console.error("Error al obtener la suma de diferencia:", error);
+      return res.status(500).json({ error: "Error interno del servidor" });
+    }
+    if (!results || !results.length) {
+      return res.status(404).json({ error: "No se encontraron resultados" });
+    }
+    
+    const table = tableName;
+    const resultado = results;
+    console.log({table, resultado});
+    res.json({table, resultado});
+  });
+});
+
 router.get("/all-tables", (req, res) => {
   // Obtener todas las tablas de la base de datos
   db.query("SHOW TABLES", (error, tables) => {
